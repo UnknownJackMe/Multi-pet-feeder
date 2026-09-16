@@ -1,5 +1,51 @@
 # Multi-pet-feeder
 
-Open-source multi-pet automatic feeder project.
+一个面向多宠家庭的开源智能自动喂食器项目。
 
-> Active architecture and prototype work is developed through feature branches and reviewed by pull request before merging into `main`.
+当前 V1 目标是支持 **2 只猫 + 1 只狗** 使用各自独立粮仓，通过 RFID 身份识别、双门认证缓冲舱、防尾随传感器融合、称重闭环出粮和本地离线调度，实现“谁的粮只让谁吃”。
+
+## 当前设计文档
+
+- [`docs/系统架构.md`](docs/系统架构.md) — 整体系统结构、控制架构与防尾随方案
+- [`docs/设计决策.md`](docs/设计决策.md) — 关键架构决策与设计取舍
+- [`docs/硬件清单.md`](docs/硬件清单.md) — V1 传感器、执行器与硬件基线
+- [`docs/接口设计.md`](docs/接口设计.md) — RFID、ToF、称重、门控、状态机等软件接口
+- [`docs/状态机设计.md`](docs/状态机设计.md) — 双门认证、防尾随和故障恢复状态机
+- [`docs/安全与故障模型.md`](docs/安全与故障模型.md) — 防夹、Fail-Closed、断电恢复和无人值守验收要求
+- [`docs/开源参考.md`](docs/开源参考.md) — 已调研开源项目及本项目采用的设计思想
+- [`docs/开发路线图.md`](docs/开发路线图.md) — 从桌面原型到整机和产品化的开发阶段
+
+## 核心设计原则
+
+- ESP32-S3 是权威本地主控；
+- Wi-Fi、云端、NUC、摄像头失效后，基础喂食和安全逻辑仍必须工作；
+- 外门和内门绝不能同时物理开启；
+- RFID 只负责回答“是谁”，不能单独证明“只有一只宠物”；
+- ToF、缓冲舱称重和光幕共同判断尾随和空间占用；
+- 身份或占用不确定时，内门保持关闭；
+- 门状态必须由限位开关等物理反馈确认；
+- 关门遇到遮挡时必须停止并反向，宠物安全优先；
+- 出粮采用食盆称重闭环，不能只依赖电机运行时间；
+- 重启后通过喂食账本防止同一餐重复完整出粮。
+
+## 当前实现状态
+
+已完成：
+
+- V1 系统架构设计；
+- 防尾随双门状态机；
+- Presence Fusion 核心逻辑；
+- RFID / ToF / Load Cell / Beam / Door 的接口边界设计；
+- PC 端纯 C++ 域逻辑测试；
+- GitHub Actions 自动回归测试；
+- 外门关门遇到遮挡时的显式反向恢复逻辑。
+
+当前 CI 已能够完成域逻辑的 Configure / Build / Test。
+
+下一阶段将逐步接入真实 ESP32-S3 硬件驱动：RFID、HX711、VL53L5CX、双门执行器与 TMC2209 三路出粮。
+
+## 许可证
+
+本仓库使用 Apache-2.0。
+
+对于 GPL 等许可证的参考项目，本项目默认只借鉴其架构和设计思想，并独立重写实现；任何第三方代码真正引入前都需要单独确认许可证兼容性。
