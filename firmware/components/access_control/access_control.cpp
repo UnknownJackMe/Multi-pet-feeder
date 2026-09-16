@@ -213,7 +213,20 @@ AccessStepResult AccessController::step(const AccessInputs& inputs) {
 
         case AccessState::OuterClosing: {
             if (!inputs.presence.outer_threshold_clear) {
-                return abort_to_outer_recovery(inputs);
+                // A closing command may already be in flight even if the
+                // open-limit switch still reads active for a short time.
+                // Therefore explicitly command the door back open instead of
+                // relying on stale physical feedback to imply safety.
+                if (!is_door_confirmed_closed(inputs.inner_door)) {
+                    return enter_safe_fault(inputs);
+                }
+                AccessActions actions{};
+                actions.open_outer = true;
+                actions.invalidate_authorization = true;
+                authorized_pet_ = PetId::Unknown;
+                return transition_to(AccessState::RecoveryOuterOpening,
+                                     inputs,
+                                     actions);
             }
             if (is_door_confirmed_closed(inputs.outer_door)) {
                 return transition_to(AccessState::ChamberVerify, inputs);
